@@ -21,8 +21,6 @@ const fetchMyIP = function (callback) {
   });
 };
 
-
-
 const fetchCoordsByIP = function (ip, callback) {
   const urlLatLong = `https://ipwho.is/${ip}`
   
@@ -42,16 +40,55 @@ const fetchCoordsByIP = function (ip, callback) {
     callback(null, { latitude, longitude });
   });
 }
+
+const fetchISSFlyOverTimes = function (coordinates, callback) {
+const url = `https://iss-flyover.herokuapp.com/json/?lat=${coordinates.latitude}&lon=${coordinates.longitude}`;
+
+   request(url, (error, response, body) => {
+    if (error) {
+      callback(error, null);
+      return;
+    }    if (response.statusCode !== 200) {
+      callback(Error(`Status Code ${response.statusCode} when fetching ISS pass times: ${body}`), null);
+      return;
+     }
+      const passes = JSON.parse(body).response;
+      callback(null, passes);
+  });
+};
+
+
+  
+// -------
+  const nextISSTimesForMyLocation = function(callback) {
+    fetchMyIP((error, ip) => {
+    
+    if (error) {
+      return callback(error, null);
+    }
+
+    fetchCoordsByIP(ip, (error, loc) => {
+      if (error) {
+        return callback(error, null);
+      }
+
+      fetchISSFlyOverTimes(loc, (error, nextPasses) => {
+        if (error) {
+          return callback(error, null);
+        }
+
+        callback(null, nextPasses);
+      });
+    });
+  });
+};
+// -------
+
 module.exports = {
   fetchMyIP,
   fetchCoordsByIP, 
+  fetchISSFlyOverTimes, 
+  nextISSTimesForMyLocation, 
 };
 
-// IPv4
-// $ curl 'https://api.ipify.org?format=json'
-// {"ip":"207.194.245.106"}
-// console.error("error:", error); // Print the error if one occurred
-// console.log("statusCode:", response && response.statusCode); // Print the response status code if a response was received
-// console.log("body:", body); // Print the HTML for the Google homepage.
 
- // if non-200 status, assume server error
